@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRID RSI EA — Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f0f;color:#e0e0e0;padding:16px;min-height:100vh}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.header h1{font-size:17px;font-weight:600;color:#fff}
+.conn{display:flex;align-items:center;gap:6px;font-size:12px;color:#888}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:#ef4444}
+.conn-dot.ok{background:#22c55e}
+.refresh-btn{font-size:12px;padding:5px 12px;border:1px solid #333;border-radius:8px;background:#1a1a1a;color:#aaa;cursor:pointer}
+.refresh-btn:hover{background:#222;color:#fff}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+.metric{background:#1a1a1a;border-radius:10px;padding:14px}
+.metric .lbl{font-size:11px;color:#666;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em}
+.metric .val{font-size:22px;font-weight:600;color:#fff}
+.metric .sub{font-size:11px;color:#555;margin-top:3px}
+.pos{color:#22c55e}.neg{color:#ef4444}.warn{color:#f59e0b}
+.dd-wrap{background:#222;border-radius:4px;height:6px;margin-top:8px;overflow:hidden}
+.dd-fill{height:6px;border-radius:4px;transition:width 0.4s}
+.dd-lbl{font-size:11px;color:#555;margin-top:4px}
+.card{background:#1a1a1a;border-radius:12px;padding:16px;margin-bottom:12px}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tab{font-size:12px;padding:5px 14px;border:1px solid #333;border-radius:8px;background:none;color:#666;cursor:pointer}
+.tab.active{background:#222;color:#fff;border-color:#555}
+.hist-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #1f1f1f;font-size:13px}
+.hist-row:last-child{border:none}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:6px;margin-left:6px;font-weight:600}
+.badge-buy{background:#052e16;color:#22c55e}
+.badge-sell{background:#450a0a;color:#ef4444}
+.badge-info{background:#1e3a5f;color:#60a5fa}
+.badge-warn{background:#451a03;color:#f59e0b}
+.warn-box{background:#451a03;border:1px solid #92400e;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#fbbf24;display:none}
+.last-upd{font-size:11px;color:#444;text-align:right;margin-top:8px}
+.icon{display:inline-block;width:16px;text-align:center;margin-right:4px}
+@media(max-width:480px){
+  .metric .val{font-size:18px}
+  body{padding:10px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>&#x1F4CA; GRID RSI EA — Dashboard</h1>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="conn"><span class="conn-dot" id="cdot"></span><span id="ctxt">menghubungkan...</span></div>
+    <button class="refresh-btn" onclick="fetchData()">&#x21BB; refresh</button>
+  </div>
+</div>
+
+<div id="warn-dd" class="warn-box">
+  &#x26A0; <strong>Drawdown tinggi!</strong> <span id="warn-dd-txt"></span>
+</div>
+
+<div class="grid2">
+  <div class="metric">
+    <div class="lbl">profit hari ini</div>
+    <div class="val" id="m-today">+$0.00</div>
+    <div class="sub" id="m-pips">0 pip</div>
+  </div>
+  <div class="metric">
+    <div class="lbl">balance</div>
+    <div class="val" id="m-bal">$0.00</div>
+    <div class="sub" id="m-eq">equity: $0.00</div>
+  </div>
+  <div class="metric">
+    <div class="lbl">drawdown</div>
+    <div class="val" id="m-dd">0.0%</div>
+    <div class="dd-wrap"><div class="dd-fill" id="dd-fill" style="width:0%;background:#22c55e"></div></div>
+    <div class="dd-lbl" id="dd-lbl">aman</div>
+  </div>
+  <div class="metric">
+    <div class="lbl">open orders</div>
+    <div class="val" id="m-ord">0</div>
+    <div class="sub" id="m-ord-sub">0 buy / 0 sell</div>
+  </div>
+</div>
+
+<div class="grid3">
+  <div class="metric">
+    <div class="lbl">WR hari ini</div>
+    <div class="val" id="m-wr1">0%</div>
+  </div>
+  <div class="metric">
+    <div class="lbl">WR minggu</div>
+    <div class="val" id="m-wr2">0%</div>
+  </div>
+  <div class="metric">
+    <div class="lbl">WR bulan</div>
+    <div class="val" id="m-wr3">0%</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('all',this)">semua</button>
+  <button class="tab" onclick="switchTab('open',this)">open</button>
+  <button class="tab" onclick="switchTab('close',this)">closed</button>
+  <button class="tab" onclick="switchTab('warn',this)">peringatan</button>
+</div>
+
+<div class="card">
+  <div id="hist-list"><p style="text-align:center;color:#555;padding:20px 0;font-size:13px">memuat data...</p></div>
+</div>
+
+<div class="last-upd" id="last-upd">terakhir update: -</div>
+
+<script>
+var TOKEN   = '8996029319:AAEzSF1CUUxh6EfnW_lk2v3T_n95LQRfWjI';
+var CHAT_ID = '5670221277';
+var ALL_MSGS = [];
+var CUR_TAB  = 'all';
+
+function setConn(ok){
+  document.getElementById('cdot').className = 'conn-dot'+(ok?' ok':'');
+  document.getElementById('ctxt').textContent = ok ? 'terhubung' : 'gagal terhubung';
+}
+
+async function fetchData(){
+  try{
+    var url = 'https://api.telegram.org/bot'+TOKEN+'/getUpdates?limit=100';
+    var res  = await fetch(url);
+    var data = await res.json();
+    if(!data.ok){ setConn(false); return; }
+    setConn(true);
+    var msgs = [];
+    (data.result||[]).forEach(function(u){
+      if(u.message && u.message.text)
+        msgs.push({text:u.message.text, date:u.message.date*1000});
+    });
+    ALL_MSGS = msgs;
+    var stats = parseStats(msgs);
+    updateMetrics(stats);
+    renderHistory(buildItems(msgs), CUR_TAB);
+    document.getElementById('last-upd').textContent =
+      'terakhir update: '+new Date().toLocaleTimeString('id-ID');
+  }catch(e){ setConn(false); }
+}
+
+function parseStats(msgs){
+  var s={todayProfit:0,todayPips:0,balance:0,equity:0,ddPct:0,openBuy:0,openSell:0,wrToday:0,wrWeek:0,wrMonth:0};
+  msgs.forEach(function(m){
+    var t=m.text;
+    if(t.indexOf('WIN RATE HARIAN')>=0){
+      var b=t.match(/Balance\s*:\s*([\d.,]+)/); if(b) s.balance=parseFloat(b[1].replace(',',''));
+      var wt=t.match(/WR Today\s*:\s*([\d.]+)%/); if(wt) s.wrToday=parseFloat(wt[1]);
+      var ww=t.match(/WR Week\s*:\s*([\d.]+)%/);  if(ww) s.wrWeek=parseFloat(ww[1]);
+      var wm=t.match(/WR Month\s*:\s*([\d.]+)%/); if(wm) s.wrMonth=parseFloat(wm[1]);
+      var td=t.match(/Today\s*:\s*[+-]?[\d.]+%\s*\|\s*([+-]?[\d.]+)\s*\w+\s*\|\s*(\d+)\s*pip/);
+      if(td){s.todayProfit=parseFloat(td[1]);s.todayPips=parseInt(td[2]);}
+    }
+    if(t.indexOf('OPEN ORDER')>=0||t.indexOf('GRID ORDER')>=0){
+      if(t.indexOf('BUY')>=0) s.openBuy++; else s.openSell++;
+    }
+    if(t.indexOf('CLOSE ORDER')>=0){
+      if(t.indexOf('BUY')>=0) s.openBuy=Math.max(0,s.openBuy-1);
+      else s.openSell=Math.max(0,s.openSell-1);
+    }
+    if(t.indexOf('WARNING: DRAWDOWN')>=0){
+      var dd=t.match(/DD\s*:\s*-([\d.]+)%/); if(dd) s.ddPct=parseFloat(dd[1]);
+    }
+    if(t.indexOf('EA STARTED')>=0||t.indexOf('OVERLAP RECOVERY')>=0){
+      var b2=t.match(/Balance\s*:\s*([\d.,]+)/); if(b2) s.balance=parseFloat(b2[1].replace(',',''));
+    }
+  });
+  s.equity = s.balance>0 ? s.balance*(1-s.ddPct/100) : 0;
+  return s;
+}
+
+function buildItems(msgs){
+  var items=[];
+  msgs.forEach(function(m){
+    var t=m.text;
+    if(t.indexOf('OPEN ORDER')>=0||t.indexOf('GRID ORDER')>=0){
+      var side=t.indexOf('BUY')>=0?'BUY':'SELL';
+      var lot=t.match(/Lot\s*:\s*([\d.]+)/);
+      var price=t.match(/Price\s*:\s*([\d.]+)/);
+      var isGrid=t.indexOf('GRID ORDER')>=0;
+      var gn=isGrid?t.match(/#(\d+)/):'';
+      items.push({type:'open',side:side,date:m.date,
+        label:(isGrid?'grid'+(gn?' #'+gn[1]:''):'open')+' '+side.toLowerCase(),
+        lot:lot?lot[1]:'-',price:price?price[1]:'-',profit:null});
+    }
+    if(t.indexOf('CLOSE ORDER')>=0){
+      var side=t.indexOf('BUY')>=0?'BUY':'SELL';
+      var pf=t.match(/Profit\s*:\s*([+-]?[\d.]+)/);
+      var pp=t.match(/Pips\s*:\s*([+-]?\d+)/);
+      items.push({type:'close',side:side,date:m.date,
+        label:'close '+side.toLowerCase(),
+        lot:'-',price:'-',profit:pf?parseFloat(pf[1]):0,pips:pp?pp[1]:'-'});
+    }
+    if(t.indexOf('OVERLAP RECOVERY')>=0){
+      var net=t.match(/Net P\/L\s*:\s*([+-]?[\d.]+)/);
+      items.push({type:'overlap',side:'-',date:m.date,label:'overlap recovery',
+        lot:'-',price:'-',profit:net?parseFloat(net[1]):0,pips:'-'});
+    }
+    if(t.indexOf('EA STARTED')>=0)
+      items.push({type:'info',side:'-',date:m.date,label:'EA started',profit:null});
+    if(t.indexOf('EA STOPPED')>=0)
+      items.push({type:'warn',side:'-',date:m.date,label:'EA stopped',profit:null});
+    if(t.indexOf('WARNING: DRAWDOWN')>=0)
+      items.push({type:'warn',side:'-',date:m.date,label:'drawdown warning',profit:null});
+  });
+  return items;
+}
+
+function updateMetrics(s){
+  var tp=s.todayProfit;
+  document.getElementById('m-today').textContent=(tp>=0?'+':'')+tp.toFixed(2);
+  document.getElementById('m-today').className='val '+(tp>=0?'pos':'neg');
+  document.getElementById('m-pips').textContent=s.todayPips+' pip';
+  document.getElementById('m-bal').textContent='$'+s.balance.toFixed(2);
+  document.getElementById('m-eq').textContent='equity: $'+s.equity.toFixed(2);
+  var dd=s.ddPct;
+  document.getElementById('m-dd').textContent=dd.toFixed(1)+'%';
+  document.getElementById('m-dd').className='val '+(dd<10?'pos':dd<20?'warn':'neg');
+  document.getElementById('dd-fill').style.width=Math.min(dd,100)+'%';
+  document.getElementById('dd-fill').style.background=dd<10?'#22c55e':dd<20?'#f59e0b':'#ef4444';
+  document.getElementById('dd-lbl').textContent=dd<10?'aman':dd<20?'waspada':'bahaya!';
+  document.getElementById('m-ord').textContent=s.openBuy+s.openSell;
+  document.getElementById('m-ord-sub').textContent=s.openBuy+' buy / '+s.openSell+' sell';
+  function wrColor(v){ return v>=60?'pos':v>=40?'warn':'neg'; }
+  document.getElementById('m-wr1').textContent=s.wrToday.toFixed(1)+'%';
+  document.getElementById('m-wr1').className='val '+wrColor(s.wrToday);
+  document.getElementById('m-wr2').textContent=s.wrWeek.toFixed(1)+'%';
+  document.getElementById('m-wr2').className='val '+wrColor(s.wrWeek);
+  document.getElementById('m-wr3').textContent=s.wrMonth.toFixed(1)+'%';
+  document.getElementById('m-wr3').className='val '+wrColor(s.wrMonth);
+  var wb=document.getElementById('warn-dd');
+  if(dd>=20){ wb.style.display='block'; document.getElementById('warn-dd-txt').textContent='DD '+dd.toFixed(1)+'% — segera monitor!'; }
+  else wb.style.display='none';
+}
+
+function renderHistory(items, tab){
+  items.sort(function(a,b){return b.date-a.date;});
+  var filtered=items.filter(function(i){
+    if(tab==='all') return true;
+    if(tab==='open') return i.type==='open';
+    if(tab==='close') return i.type==='close'||i.type==='overlap';
+    if(tab==='warn') return i.type==='warn'||i.type==='info';
+    return true;
+  });
+  var el=document.getElementById('hist-list');
+  if(!filtered.length){
+    el.innerHTML='<p style="text-align:center;color:#555;padding:20px 0;font-size:13px">tidak ada data</p>';
+    return;
+  }
+  var icons={open:'&#x2197;',close:'&#x2198;',overlap:'&#x21BB;',warn:'&#x26A0;',info:'&#x25B6;'};
+  var html='';
+  filtered.slice(0,40).forEach(function(i){
+    var badgeHtml=i.side!=='-'?'<span class="badge badge-'+(i.side==='BUY'?'buy':'sell')+'">'+i.side+'</span>':'';
+    if(i.type==='overlap') badgeHtml='<span class="badge badge-info">RECOVERY</span>';
+    if(i.type==='warn') badgeHtml='<span class="badge badge-warn">WARN</span>';
+    if(i.type==='info') badgeHtml='<span class="badge badge-info">INFO</span>';
+    var pfHtml=i.profit!==null?'<span class="'+(i.profit>=0?'pos':'neg')+'" style="font-weight:600">'+(i.profit>=0?'+':'')+i.profit.toFixed(2)+'</span>':'';
+    var timeStr=new Date(i.date).toLocaleString('id-ID',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    html+='<div class="hist-row"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px"><span style="color:#888;margin-right:4px">'+(icons[i.type]||'')+'</span><span>'+i.label+'</span>'+badgeHtml+'</div><div style="display:flex;align-items:center;gap:10px">'+pfHtml+'<span style="font-size:11px;color:#444">'+timeStr+'</span></div></div>';
+  });
+  el.innerHTML=html;
+}
+
+function switchTab(tab,btn){
+  CUR_TAB=tab;
+  document.querySelectorAll('.tab').forEach(function(b){b.className='tab';});
+  btn.className='tab active';
+  renderHistory(buildItems(ALL_MSGS),tab);
+}
+
+fetchData();
+setInterval(fetchData, 30000);
+</script>
+</body>
+</html>
